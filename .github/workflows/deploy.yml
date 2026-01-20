@@ -1,0 +1,82 @@
+name: Deploy Infra and App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+env:
+  AWS_REGION: us-east-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build backend Lambda artifact (Amazon Linux)
+        run: |
+          set -e
+          mkdir -p dist
+          docker run --rm \
+            -v "$PWD/backend":/app \
+            -v "$PWD/dist":/out \
+            -w /app \
+            public.ecr.aws/sam/build-python3.9:latest \
+            /bin/sh -lc "python3 -m pip install --upgrade pip && \
+              python3 -m pip install --only-binary=:all: --no-compile -r requirements.txt -t /app/.bundle && \
+              cp -r utils main.py lambda_handler.py /app/.bundle/ && \
+              cd /app/.bundle && zip -r /out/lambda.zip . -x '*.pyc' '__pycache__/*' '.env' 'README.md'"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Terraform Apply
+        working-directory: terraform
+        env:
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          terraform apply -auto-approve \
+            -var "environment=dev" \
+            -var "lambda_zip_path=../dist/lambda.zip"
+
+      - name: Export API URL output
+        id: tf_outputs
+        working-directory: terraform
+        run: |
+          echo "api_url=$(terraform output -raw lambda_function_url)" >> $GITHUB_OUTPUT
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          REACT_APP_API_URL: ${{ steps.tf_outputs.outputs.api_url }}
+          CI: "false"   
+        run: |
+          npm install
+          npm run build
+
+      - name: Upload frontend to S3 and invalidate CloudFront
+        working-directory: terraform
+        run: |
+          BUCKET=$(terraform output -raw s3_bucket_name)
+          DIST_ID=$(terraform output -raw cloudfront_distribution_id)
+          aws s3 sync ../frontend/build s3://$BUCKET --delete
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"

@@ -1,5 +1,5 @@
 # CloudFront Origin Access Control
-resource "aws_cloudfront_origin_access_control" "frontend" {
+resource "aws_cloudfront_origin_access_control" "frontend_gig" {
   name                              = "resume-auto-${var.environment}"
   description                       = "OAC for resume-auto ${var.environment}"
   origin_access_control_origin_type = "s3"
@@ -8,7 +8,7 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
 }
 
 # CloudFront distribution
-resource "aws_cloudfront_distribution" "frontend" {
+resource "aws_cloudfront_distribution" "frontend_gig" {
   comment = "resume-auto-${var.environment}"
   
   origin {

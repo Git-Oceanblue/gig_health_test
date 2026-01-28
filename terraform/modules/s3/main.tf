@@ -1,8 +1,7 @@
 # S3 bucket for frontend_gig hosting
 resource "aws_s3_bucket" "frontend_gig" {
-  bucket = "resume-auto-frontend_gig-${var.environment}-${data.aws_caller_identity.current.account_id}"
-  force_destroy = true
   bucket = var.bucket_name
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "frontend_gig" {

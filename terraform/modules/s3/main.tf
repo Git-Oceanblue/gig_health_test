@@ -5,6 +5,7 @@ resource "aws_s3_bucket" "frontend" {
 
 resource "aws_s3_bucket_versioning" "frontend" {
   bucket = aws_s3_bucket.frontend.id
+  force_destroy = true
   versioning_configuration {
     status = "Enabled"
   }

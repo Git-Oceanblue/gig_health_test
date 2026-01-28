@@ -13,7 +13,7 @@ resource "aws_cloudfront_distribution" "frontend_gig" {
   
   origin {
     domain_name              = var.s3_bucket_domain_name
-    origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
+    origin_access_control_id = aws_cloudfront_origin_access_control.frontend_gig.id
     origin_id                = "S3-resume-auto-${var.environment}"
   }
 
@@ -90,5 +90,5 @@ resource "aws_cloudfront_distribution" "frontend_gig" {
     cloudfront_default_certificate = true
   }
 
-  depends_on = [aws_cloudfront_origin_access_control.frontend]
+  depends_on = [aws_cloudfront_origin_access_control.frontend_gig]
 }

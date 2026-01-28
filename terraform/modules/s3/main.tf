@@ -1,11 +1,11 @@
 # S3 bucket for frontend hosting
 resource "aws_s3_bucket" "frontend" {
+  force_destroy = true
   bucket = var.bucket_name
 }
 
 resource "aws_s3_bucket_versioning" "frontend" {
   bucket = aws_s3_bucket.frontend.id
-  force_destroy = true
   versioning_configuration {
     status = "Enabled"
   }

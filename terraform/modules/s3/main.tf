@@ -1,7 +1,6 @@
 # S3 bucket for frontend_gig hosting
 resource "aws_s3_bucket" "frontend_gig" {
   bucket = var.bucket_name
-  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "frontend_gig" {

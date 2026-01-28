@@ -10,7 +10,7 @@ terraform {
   backend "s3" {
     bucket = "resumes-auto-terraform-state"
     key    = "terraform.tfstate"
-    region = "us-east-2"
+    region = "us-east-1"
   }
 }
 
@@ -30,11 +30,11 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# S3 bucket for frontend
+# S3 bucket for frontend (changed the resume-auto-frontend)
 module "s3_frontend" {
   source = "./modules/s3"
   
-  bucket_name = "resume-auto-frontend-${var.environment}-${data.aws_caller_identity.current.account_id}"
+  bucket_name = "gig-frontend-${var.environment}-${data.aws_caller_identity.current.account_id}"
   environment = var.environment
 }
 
@@ -47,11 +47,11 @@ module "cloudfront" {
   environment = var.environment
 }
 
-# Lambda function for backend
+# Lambda function for backend (changed the resume-auto-backend)
 module "lambda" {
   source = "./modules/lambda"
   
-  function_name = "resume-auto-backend-${var.environment}"
+  function_name = "gig-backend-${var.environment}"
   environment   = var.environment
   lambda_zip_path = var.lambda_zip_path
   openai_api_key  = var.openai_api_key

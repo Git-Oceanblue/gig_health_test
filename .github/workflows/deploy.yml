@@ -55,7 +55,7 @@ jobs:
           TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
         run: |
           terraform apply -auto-approve \
-            -var "environment=dev" \
+            -var "environment=test" \
             -var "lambda_zip_path=../dist/lambda.zip"
 
       - name: Export API URL output

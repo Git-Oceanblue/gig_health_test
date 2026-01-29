@@ -38,7 +38,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-resource "aws_lambda_function" "backend" {
+resource "aws_lambda_function" "backend_gig" {
   filename         = var.lambda_zip_path
   function_name    = var.function_name
   role             = aws_iam_role.lambda_role.arn
@@ -61,7 +61,7 @@ resource "aws_lambda_function" "backend" {
 }
 
 # Lambda function URL
-resource "aws_lambda_function_url" "backend_url" {
+resource "aws_lambda_function_url" "backend_gig_url" {
   function_name      = aws_lambda_function.backend.function_name
   authorization_type = "NONE"
   invoke_mode       = "BUFFERED"

@@ -1,7 +1,7 @@
 # CloudFront Origin Access Control
 resource "aws_cloudfront_origin_access_control" "frontend_gig" {
-  name                              = "resume-auto-${var.environment}"
-  description                       = "OAC for resume-auto ${var.environment}"
+  name                              = "resume-gig-${var.environment}"
+  description                       = "OAC for resume-gig ${var.environment}"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -9,12 +9,12 @@ resource "aws_cloudfront_origin_access_control" "frontend_gig" {
 
 # CloudFront distribution
 resource "aws_cloudfront_distribution" "frontend_gig" {
-  comment = "resume-auto-${var.environment}"
+  comment = "resume-gig-${var.environment}"
   
   origin {
     domain_name              = var.s3_bucket_domain_name
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend_gig.id
-    origin_id                = "S3-resume-auto-${var.environment}"
+    origin_id                = "S3-resume-gig-${var.environment}"
   }
 
   enabled             = true

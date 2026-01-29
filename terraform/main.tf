@@ -8,7 +8,7 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "resumes-auto-terraform-state"
+    bucket = "resumes-gig-terraform-state"
     key    = "terraform.tfstate"
     region = "us-east-2"
   }
@@ -19,7 +19,7 @@ provider "aws" {
   
   default_tags {
     tags = {
-      Project     = "resume-auto"
+      Project     = "resume-gig"
       Environment = var.environment
       ManagedBy   = "terraform"
     }

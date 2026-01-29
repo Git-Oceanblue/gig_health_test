@@ -5,10 +5,10 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Environment name (dev, prod, test)"
+  description = "Environment name (test)"
   type        = string
   validation {
-    condition     = contains(["dev", "prod", "test"], var.environment)
+    condition     = contains("test", var.environment)
     error_message = "Environment must be either 'dev' or 'prod' or 'test'."
   }
 }
@@ -16,7 +16,7 @@ variable "environment" {
 variable "project_name" {
   description = "Name of the project"
   type        = string
-  default     = "resume-auto"
+  default     = "resume-gig"
 }
 
 variable "lambda_zip_path" {

@@ -46,7 +46,7 @@ resource "aws_cloudfront_distribution" "frontend_gig" {
     path_pattern     = "/static/*"
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
     cached_methods   = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id = "S3-resume-auto-${var.environment}"
+    target_origin_id = "S3-resume-gig-${var.environment}"
 
     forwarded_values {
       query_string = false

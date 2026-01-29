@@ -62,7 +62,7 @@ resource "aws_lambda_function" "backend_gig" {
 
 # Lambda function URL
 resource "aws_lambda_function_url" "backend_gig_url" {
-  function_name      = aws_lambda_function.backend.function_name
+  function_name      = aws_lambda_function.backend_gig.function_name
   authorization_type = "NONE"
   invoke_mode       = "BUFFERED"
 

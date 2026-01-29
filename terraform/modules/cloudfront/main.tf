@@ -24,7 +24,7 @@ resource "aws_cloudfront_distribution" "frontend_gig" {
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods   = ["GET", "HEAD"]
-    target_origin_id = "S3-resume-auto-${var.environment}"
+    target_origin_id = "S3-resume-gig-${var.environment}"
 
     forwarded_values {
       query_string = false

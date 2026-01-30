@@ -10,7 +10,7 @@ import os
 import logging
 import json
 from datetime import datetime
-import traceback  # Added for better error logging
+
 
 from utils.file_parser import extract_text_from_file
 from utils.ai_parser import stream_resume_processing

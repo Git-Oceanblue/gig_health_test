@@ -4,17 +4,13 @@ FastAPI Resume Builder Backend - AWS Lambda Version
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel  
-from typing import Dict, Any  
 import os
 import logging
 import json
 from datetime import datetime
 
-
 from utils.file_parser import extract_text_from_file
 from utils.ai_parser import stream_resume_processing
-from utils.database_insertion import main_insert 
 
 logging.basicConfig(
     level=logging.INFO,
@@ -135,7 +131,7 @@ async def insert_resume_to_db(request: DbInsertRequest):
         logger.info(f"Received insert request for table '{request.tableName}'")
         logger.info(f"Data keys: {list(request.data.keys())}")
 
-                # Validate input
+        # Validate input
         if not request.tableName:
             raise ValueError("tableName is required")
         if not request.data:

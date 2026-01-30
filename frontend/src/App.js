@@ -7,25 +7,25 @@ import DbInsertPanel from './components/DbInsertPanel';
 function App() {
   // State to track the current step of the process
   const [step, setStep] = useState(1);
-  
+
   // State to hold the resume data - preserve throughout navigation
   const [resumeData, setResumeData] = useState(null);
-  
+
   // State to track loading state
   const [loading, setLoading] = useState(false);
-  
+
   // Handler for when resume data is extracted
   const handleResumeDataExtracted = (data) => {
     setResumeData(data);
     setStep(2); // Move to form editing step
   };
-  
+
   // Handler for generating final resume
   const handleGenerateResume = (formData) => {
     setResumeData(formData);
     setStep(3); // Move to resume preview step
   };
-  
+
   // Navigation handlers for top nav
   const navigateToStep = (targetStep) => {
     if (targetStep === 1) {
@@ -46,9 +46,9 @@ function App() {
         <div className="container mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <img 
-                src="/logo.png" 
-                alt="OceanBlue Solutions Logo" 
+              <img
+                src="/logo.png"
+                alt="OceanBlue Solutions Logo"
                 className="h-12 w-12 rounded-lg shadow-md"
               />
               <div>
@@ -59,7 +59,7 @@ function App() {
           </div>
         </div>
       </header>
-      
+
       {/* Top Navigation Bar */}
       <nav className="bg-white shadow-md border-b border-gray-200">
         <div className="container mx-auto px-4">
@@ -81,12 +81,12 @@ function App() {
                 </div>
                 <span className="whitespace-nowrap">Upload Resume</span>
               </button>
-              
+
               {/* Connector */}
               <div className={`w-6 h-1 ${
                 step >= 2 ? 'bg-ocean-blue' : 'bg-gray-300'
               }`}></div>
-              
+
               {/* Step 2: Review & Edit */}
               <button
                 onClick={() => navigateToStep(2)}
@@ -106,12 +106,12 @@ function App() {
                 </div>
                 <span className="whitespace-nowrap">Review & Edit</span>
               </button>
-              
+
               {/* Connector */}
               <div className={`w-6 h-1 ${
                 step >= 3 ? 'bg-ocean-blue' : 'bg-gray-300'
               }`}></div>
-              
+
               {/* Step 3: Generated Resume */}
               <button
                 onClick={() => navigateToStep(3)}
@@ -131,12 +131,12 @@ function App() {
                 </div>
                 <span className="whitespace-nowrap">Generated Resume</span>
               </button>
-              
+
               {/* Connector */}
               <div className={`w-6 h-1 ${
                 step >= 4 ? 'bg-ocean-blue' : 'bg-gray-300'
               }`}></div>
-              
+
               {/* Step 4: Database Insertion */}
               <button
                 onClick={() => navigateToStep(4)}
@@ -160,7 +160,7 @@ function App() {
           </div>
         </div>
       </nav>
-      
+
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         <div className="max-w-5xl mx-auto">
@@ -168,36 +168,36 @@ function App() {
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-fade-in">
             {step === 1 && (
               <div className="p-8">
-                <FileUpload 
+                <FileUpload
                   onResumeDataExtracted={handleResumeDataExtracted}
                   setLoading={setLoading}
                 />
               </div>
             )}
-            
+
             {step === 2 && resumeData && (
               <div className="p-8">
-                <ResumeForm 
+                <ResumeForm
                   initialData={resumeData}
                   onSubmit={handleGenerateResume}
                   onBack={() => setStep(1)}
                 />
               </div>
             )}
-            
+
             {step === 3 && resumeData && (
               <div className="p-8">
-                <GeneratedResume 
+                <GeneratedResume
                   resumeData={resumeData}
                   onBack={() => setStep(2)}
                   onNextStep={() => setStep(4)}
                 />
               </div>
             )}
-            
+
             {step === 4 && resumeData && (
               <div className="p-8">
-                <DbInsertPanel 
+                <DbInsertPanel
                   resumeData={resumeData}
                 />
               </div>

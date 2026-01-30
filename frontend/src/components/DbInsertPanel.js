@@ -19,7 +19,7 @@ const DbInsertPanel = ({ resumeData }) => {
       try {
         setLoading(true);
         setError('');
-        
+
         // POST resume data to get table metadata based on data keys
         const response = await fetch(`${API_BASE_URL}/api/db/table-metadata`, {
           method: 'POST',
@@ -30,22 +30,22 @@ const DbInsertPanel = ({ resumeData }) => {
             resumeData: resumeData
           })
         });
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch table metadata: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         setTableName(data.tableName);
         setColumns(data.columns);
-        
+
         // Initialize editable data with resumeData values
         const initialData = {};
         data.columns.forEach(col => {
           initialData[col] = getValueFromResumeData(col);
         });
         setEditableData(initialData);
-        
+
         setLoading(false);
       } catch (err) {
         console.error('❌ Error fetching table metadata:', err);
@@ -67,29 +67,29 @@ const DbInsertPanel = ({ resumeData }) => {
       name: resumeData.name || '',
       title: resumeData.title || '',
       requisitionNumber: resumeData.requisitionNumber || '',
-      professionalSummary: Array.isArray(resumeData.professionalSummary) 
-        ? resumeData.professionalSummary.join('\n') 
+      professionalSummary: Array.isArray(resumeData.professionalSummary)
+        ? resumeData.professionalSummary.join('\n')
         : resumeData.professionalSummary || '',
-      employmentHistory: resumeData.employmentHistory 
-        ? JSON.stringify(resumeData.employmentHistory) 
+      employmentHistory: resumeData.employmentHistory
+        ? JSON.stringify(resumeData.employmentHistory)
         : '',
-      education: resumeData.education 
-        ? JSON.stringify(resumeData.education) 
+      education: resumeData.education
+        ? JSON.stringify(resumeData.education)
         : '',
       technicalSkills: Array.isArray(resumeData.technicalSkills)
         ? resumeData.technicalSkills.join(', ')
         : resumeData.technicalSkills || '',
-      skillCategories: resumeData.skillCategories 
-        ? JSON.stringify(resumeData.skillCategories) 
+      skillCategories: resumeData.skillCategories
+        ? JSON.stringify(resumeData.skillCategories)
         : '',
-      certifications: resumeData.certifications 
-        ? JSON.stringify(resumeData.certifications) 
+      certifications: resumeData.certifications
+        ? JSON.stringify(resumeData.certifications)
         : '',
-      summarySections: resumeData.summarySections 
-        ? JSON.stringify(resumeData.summarySections) 
+      summarySections: resumeData.summarySections
+        ? JSON.stringify(resumeData.summarySections)
         : '',
-      tokenStats: resumeData.tokenStats 
-        ? JSON.stringify(resumeData.tokenStats) 
+      tokenStats: resumeData.tokenStats
+        ? JSON.stringify(resumeData.tokenStats)
         : ''
     };
 
@@ -108,7 +108,7 @@ const DbInsertPanel = ({ resumeData }) => {
   // Handle database insertion
   const handleInsertToDb = async (e) => {
     e.preventDefault();
-    
+
     try {
       setInserting(true);
       setError('');
@@ -117,7 +117,7 @@ const DbInsertPanel = ({ resumeData }) => {
       // Parse JSON fields if they contain valid JSON
       const dataToInsert = { ...editableData };
       const jsonFields = ['employmentHistory', 'education', 'skillCategories', 'certifications', 'summarySections', 'tokenStats'];
-      
+
       jsonFields.forEach(field => {
         if (dataToInsert[field] && typeof dataToInsert[field] === 'string') {
           try {

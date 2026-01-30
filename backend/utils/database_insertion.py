@@ -34,7 +34,7 @@ def table_existance(table_name,cursor):
     else:
         return None
 
-# Schema creadtion using the exisintg data 
+# Schema creadtion using the exisintg data
 
 def create_schema(data):
     all_columns = set(data.keys())
@@ -45,7 +45,7 @@ def create_schema(data):
         "columns": ", ".join([f"[{col}]" for col in all_columns])
     }
 
-# creating the table 
+# creating the table
 
 def create_table(cursor, table_name, column_defs):
 
@@ -68,7 +68,7 @@ def insert_data(cursor, table_name, data, columns):
     cursor.execute(insert_query, list(data.values()))
 
 
-# get the columns names 
+# get the columns names
 
 def get_columns(cursor, table_name):
     cursor.execute(f"""
@@ -79,7 +79,7 @@ def get_columns(cursor, table_name):
     columns = cursor.fetchall()
     return [col[0] for col in columns]
 
-# main function which makes the connection to the DB in aws and 
+# main function which makes the connection to the DB in aws and
 
 def main_insert(data,table_name):
 

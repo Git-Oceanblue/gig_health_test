@@ -62,7 +62,7 @@ jobs:
         id: tf_outputs
         working-directory: terraform
         run: |
-          echo "api_url=$(terraform output -raw lambda_function_url)" >> $GITHUB_OUTPUT
+          echo "api_url=$(terraform output -raw lambda_function_url)/" >> $GITHUB_OUTPUT
 
       - name: Build frontend
         working-directory: frontend

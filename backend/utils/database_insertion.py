@@ -109,4 +109,10 @@ def main_insert(data,table_name):
         raise
 
     finally:
-        cursor.close()
+        # Clean up resources
+        if cursor:
+            cursor.close()
+            logger.info("✓ Cursor closed")
+        if conn:
+            conn.close()
+            logger.info("✓ Connection closed")

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiDownload, FiPrinter, FiArrowRight } from 'react-icons/fi';
+import { FiDownload, FiPrinter } from 'react-icons/fi';
 import { Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun, BorderStyle, AlignmentType, WidthType, ShadingType, VerticalAlign } from 'docx';
 import { saveAs } from 'file-saver';
 
@@ -43,7 +43,7 @@ const PricingDisplay = ({ resumeData }) => {
   );
 };
 
-const GeneratedResume = ({ resumeData, onNextStep }) => {
+const GeneratedResume = ({ resumeData }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Function to handle resume download is removed in favor of Word document generation
@@ -1487,7 +1487,7 @@ const GeneratedResume = ({ resumeData, onNextStep }) => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-center space-x-4 mb-8 flex-wrap">
+      <div className="flex justify-center space-x-4 mb-8">
         <button
           onClick={handlePrint}
           className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center transition-colors"
@@ -1500,12 +1500,6 @@ const GeneratedResume = ({ resumeData, onNextStep }) => {
           disabled={isGenerating}
         >
           <FiDownload className="mr-2" /> {isGenerating ? 'Generating...' : 'Download Word'}
-        </button>
-        <button
-          onClick={onNextStep}
-          className="px-6 py-3 bg-ocean-blue hover:bg-ocean-dark text-white rounded-lg flex items-center transition-colors"
-        >
-          <FiArrowRight className="mr-2" /> Insert to Database
         </button>
       </div>
 

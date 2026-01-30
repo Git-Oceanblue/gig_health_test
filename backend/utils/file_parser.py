@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 # extract_text_from_file
 
-def extract_text_from_file(file_path: str) -> str:
-
+#   def extract_text_from_file(file_path: str) -> str:
+"""
     
     file_extension = os.path.splitext(file_path)[1].lower()
     logger.info(f'🔍 Processing file: {file_path} (extension: {file_extension})')
@@ -99,6 +99,14 @@ def extract_text_from_file(file_path: str) -> str:
 """
 # ---------------------------------------------------------------------------------------------------------------------- new file parser.py code
 
+
+
+
+
+
+
+# ------------------- DOCX -> PDF -------------------
+
 def docx_to_pdf(docx: str) -> str:
     pdf = Path(docx).with_suffix(".pdf")
     convert(str(docx), str(pdf))
@@ -108,7 +116,12 @@ def docx_to_pdf(docx: str) -> str:
 # ------------------- DOCX ORIGIN DETECTION -------------------
 
 def detect_docx_origin(docx_path: str) -> str:
-
+    """
+    Heuristic classifier:
+      - PDF_CONVERTED_DOCX
+      - ORIGINAL_DOCX
+      - DOC_TO_DOCX
+    """
     doc = Document(docx_path)
 
     paras = [p.text.strip() for p in doc.paragraphs if p.text and p.text.strip()]
@@ -183,7 +196,9 @@ def detect_docx_origin(docx_path: str) -> str:
 
 
 def detect_origin_and_ensure_pdf(file_path: str, docx_to_pdf_func) -> dict:
-
+    """
+    Returns a routing decision + always a pdf_path.
+    """
     path = Path(file_path)
     ext = path.suffix.lower()
 
@@ -320,7 +335,9 @@ def read_pdf_layout_aware(pdf_path):
 # ------------------- DOCX TEXT READERS + QUALITY CHECK -------------------
 
 def _docx2python_text(docx_path: str) -> str:
-
+    """
+    docx2python can crash on table-heavy DOCX files. Return "" on failure.
+    """
     try:
         doc = docx2python(docx_path)
         text = doc.text
@@ -339,7 +356,10 @@ def _docx2python_text(docx_path: str) -> str:
 
 
 def _python_docx_text(docx_path: str) -> str:
-
+    """
+    Safe fallback using python-docx.
+    Reads paragraphs + tables.
+    """
     doc = Document(docx_path)
 
     lines = []
@@ -367,7 +387,11 @@ def _python_docx_text(docx_path: str) -> str:
 
 
 def _looks_bad_text(text: str) -> bool:
-
+    """
+    Small quality check:
+      - too short
+      - too many tiny lines (PDF-like wrapping)
+    """
     if not text or len(text.strip()) < 200:
         return True
 
@@ -420,6 +444,3 @@ def extract_text_from_file(file_path):
 
     except Exception as e:
         raise Exception(f"Failed to extract text from file: {e}")
-
-
-""""

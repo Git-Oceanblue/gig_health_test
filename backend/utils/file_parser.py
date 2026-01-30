@@ -5,7 +5,6 @@ Direct document parsing without subprocess
 
 import os
 import logging
-from docx2python import docx2python
 import fitz  
 
 from docx2python import docx2python

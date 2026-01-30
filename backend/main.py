@@ -4,13 +4,16 @@ FastAPI Resume Builder Backend - AWS Lambda Version
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 import os
 import logging
 import json
 from datetime import datetime
+from typing import Dict, Any
 
 from utils.file_parser import extract_text_from_file
 from utils.ai_parser import stream_resume_processing
+from utils.database_insertion import *
 
 logging.basicConfig(
     level=logging.INFO,
@@ -78,3 +81,84 @@ async def stream_resume_processing_endpoint(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"❌ Error in streaming processing: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Database Insertion Endpoints ====================
+
+class DbInsertRequest(BaseModel):
+    """Request model for database insertion"""
+    tableName: str
+    data: Dict[str, Any]
+
+
+class TableMetadataRequest(BaseModel):
+    """Request model for table metadata with resume data"""
+    resumeData: Dict[str, Any]
+
+
+@app.post("/api/db/table-metadata")
+async def get_table_metadata(request: TableMetadataRequest):
+    """
+    POST endpoint to retrieve database table metadata
+    Accepts resume data and returns columns based on the data keys
+    This ensures columns match the actual resume data structure
+    """
+    try:
+        logger.info("Fetching table metadata from resume data...")
+        
+        # Extract columns from the provided resume data keys
+        if request.resumeData:
+            columns = list(request.resumeData.keys())
+            logger.info(f"✓ Generated {len(columns)} columns from resume data keys: {columns}")
+        else:
+            raise ValueError("resumeData cannot be empty")
+        
+        table_name = "resumes"
+        
+        return {
+            "tableName": table_name,
+            "columns": columns
+        }
+            
+    except Exception as e:
+        logger.error(f"❌ Error fetching table metadata: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching table metadata: {str(e)}")
+
+
+@app.post("/api/db/insert-resume")
+async def insert_resume_to_db(request: DbInsertRequest):
+    """
+    POST endpoint to insert resume data into the database
+    Expects: { tableName: str, data: { field: value, ... } }
+    Returns: { success: bool, message: str }
+    """
+    try:
+        logger.info(f"Received insert request for table '{request.tableName}'")
+        logger.info(f"Data keys: {list(request.data.keys())}")
+        
+        # Validate input
+        if not request.tableName:
+            raise ValueError("tableName is required")
+        if not request.data:
+            raise ValueError("data object cannot be empty")
+        
+        # Call the database insertion function
+        main_insert(request.data, request.tableName)
+        
+        logger.info(f"✓ Data successfully inserted into table '{request.tableName}'")
+        
+        return {
+            "success": True,
+            "message": f"✓ Resume data successfully inserted into '{request.tableName}' table",
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error inserting resume data: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": f"Failed to insert data: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+        )

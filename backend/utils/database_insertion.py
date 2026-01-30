@@ -1,9 +1,9 @@
 from asyncio.log import logger
+import pyodbc
 
 # configuration code
 
 def conn_to_db():
-    import pyodbc
 
     conn_str = (
         "DRIVER={ODBC Driver 18 for SQL Server};"
@@ -92,6 +92,7 @@ def main_insert(data,table_name):
             existing_columns = get_columns(cursor, table_name)
             insert_data(cursor, table_name, data, ", ".join(existing_columns))
             logger.info(f"✓ Data inserted into existing table '{table_name}'.\n")
+            conn.commit()
         else:
             logger.info(f"\n✗ Table '{table_name}' does not exist. Creating table...\n")
             schema = create_schema(data)
@@ -99,6 +100,7 @@ def main_insert(data,table_name):
             logger.info(f"✓ Table '{table_name}' created successfully.\n")
             insert_data(cursor, table_name, data, schema["columns"])
             logger.info(f"✓ Data inserted into new table '{table_name}'.\n")
+            conn.commit()
 
     except Exception as e:
         logger.error(f"\n✗ Error in main_insert: {e}")
@@ -108,7 +110,3 @@ def main_insert(data,table_name):
 
     finally:
         cursor.close()
-
-
-if __name__ == 'main':
-    main_insert(data,table_name= "test")

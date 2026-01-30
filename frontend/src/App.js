@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import FileUpload from './components/FileUpload';
 import ResumeForm from './components/ResumeForm';
 import GeneratedResume from './components/GeneratedResume';
+import DbInsertPanel from './components/DbInsertPanel';
 
 function App() {
   // State to track the current step of the process
@@ -33,6 +34,8 @@ function App() {
       setStep(2);
     } else if (targetStep === 3 && resumeData) {
       setStep(3);
+    } else if (targetStep === 4 && resumeData) {
+      setStep(4);
     }
   };
 
@@ -119,7 +122,7 @@ function App() {
                     : resumeData 
                       ? 'text-ocean-dark hover:bg-ocean-blue hover:text-white bg-gray-100' 
                       : 'text-gray-400 bg-gray-50 cursor-not-allowed'
-                } rounded-r-lg border-2 border-l-0 border-ocean-blue`}
+                } border-2 border-l-0 border-ocean-blue`}
               >
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center mr-2 text-xs font-bold ${
                   step >= 3 ? 'bg-white text-ocean-blue' : 'bg-gray-300 text-gray-600'
@@ -127,6 +130,31 @@ function App() {
                   3
                 </div>
                 <span className="whitespace-nowrap">Generated Resume</span>
+              </button>
+              
+              {/* Connector */}
+              <div className={`w-6 h-1 ${
+                step >= 4 ? 'bg-ocean-blue' : 'bg-gray-300'
+              }`}></div>
+              
+              {/* Step 4: Database Insertion */}
+              <button
+                onClick={() => navigateToStep(4)}
+                disabled={!resumeData}
+                className={`flex items-center px-4 py-3 font-medium transition-all duration-300 text-sm ${
+                  step === 4 
+                    ? 'bg-ocean-blue text-white' 
+                    : resumeData 
+                      ? 'text-ocean-dark hover:bg-ocean-blue hover:text-white bg-gray-100' 
+                      : 'text-gray-400 bg-gray-50 cursor-not-allowed'
+                } rounded-r-lg border-2 border-l-0 border-ocean-blue`}
+              >
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center mr-2 text-xs font-bold ${
+                  step >= 4 ? 'bg-white text-ocean-blue' : 'bg-gray-300 text-gray-600'
+                }`}>
+                  4
+                </div>
+                <span className="whitespace-nowrap">Insert to DB</span>
               </button>
             </div>
           </div>
@@ -162,6 +190,15 @@ function App() {
                 <GeneratedResume 
                   resumeData={resumeData}
                   onBack={() => setStep(2)}
+                  onNextStep={() => setStep(4)}
+                />
+              </div>
+            )}
+            
+            {step === 4 && resumeData && (
+              <div className="p-8">
+                <DbInsertPanel 
+                  resumeData={resumeData}
                 />
               </div>
             )}

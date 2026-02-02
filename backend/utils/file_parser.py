@@ -1,28 +1,17 @@
 import os
 import logging
-import fitz  
-
-from docx2python import docx2python
-from docx2pdf import convert
-from docx import Document
-import os
-import pdfplumber
 from pathlib import Path
 import zipfile
+import statistics
+import fitz  # PyMuPDF
+from docx import Document
 
 logger = logging.getLogger(__name__)
 
 
-
-# ------------------- DOCX -> PDF -------------------
-
-def docx_to_pdf(docx: str) -> str:
-    pdf = Path(docx).with_suffix(".pdf")
-    convert(str(docx), str(pdf))
-    return str(pdf)
-
-
-# ------------------- DOCX ORIGIN DETECTION -------------------
+# ------------------------------------------------------------
+# DOCX ORIGIN DETECTION (kept; uses python-docx + zipfile only)
+# ------------------------------------------------------------
 
 def detect_docx_origin(docx_path: str) -> str:
     """
@@ -104,174 +93,19 @@ def detect_docx_origin(docx_path: str) -> str:
     return "ORIGINAL_DOCX"
 
 
-def detect_origin_and_ensure_pdf(file_path: str, docx_to_pdf_func) -> dict:
+# ------------------------------------------------------------
+# DOCX TEXT EXTRACTION (python-docx only)
+# ------------------------------------------------------------
+
+def read_docx_text(docx_path: str) -> str:
     """
-    Returns a routing decision + always a pdf_path.
-    """
-    path = Path(file_path)
-    ext = path.suffix.lower()
-
-    if ext == ".pdf":
-        return {
-            "origin": "PDF_ORIGINAL",
-            "confidence": "high",
-            "pdf_path": str(path),
-            "note": "Input is already a PDF."
-        }
-
-    if ext == ".docx":
-        origin = detect_docx_origin(str(path))
-
-        if origin == "PDF_CONVERTED_DOCX":
-            label = "PDF_CONVERTED_TO_DOCX"
-            confidence = "high"
-            note = "DOCX shows strong PDF conversion artifacts."
-        elif origin == "DOC_TO_DOCX":
-            label = "LEGACY_DOC_CONVERTED_TO_DOCX"
-            confidence = "medium"
-            note = "DOCX looks like legacy DOC conversion (heuristic)."
-        else:
-            label = "ORIGINAL_DOCX"
-            confidence = "medium"
-            note = "DOCX looks like authored Word document."
-
-        pdf_path = docx_to_pdf_func(str(path))
-        return {"origin": label, "confidence": confidence, "pdf_path": str(pdf_path), "note": note}
-
-    if ext == ".doc":
-        pdf_path = docx_to_pdf_func(str(path))  # works only if your converter supports .doc
-        return {
-            "origin": "LEGACY_DOC",
-            "confidence": "low",
-            "pdf_path": str(pdf_path),
-            "note": "Legacy DOC can't be reliably inferred; standardized to PDF."
-        }
-
-    raise ValueError(f"Unsupported file type: {ext}")
-
-
-# ------------------- PDF LAYOUT HELPERS -------------------
-
-def _find_split_x(words, page_width, min_gap_ratio=0.08):
-    xs = sorted(w["x0"] for w in words if "x0" in w)
-    if len(xs) < 30:
-        return None
-
-    largest_gap = 0
-    split_x = None
-    for a, b in zip(xs, xs[1:]):
-        gap = b - a
-        if gap > largest_gap:
-            largest_gap = gap
-            split_x = (a + b) / 2
-
-    if largest_gap < page_width * min_gap_ratio:
-        return None
-
-    return split_x
-
-
-def is_two_column(page, min_gap_ratio=0.08):
-    words = page.extract_words() or []
-    split_x = _find_split_x(words, page.width, min_gap_ratio=min_gap_ratio)
-    if split_x is None:
-        return False
-    left = [w for w in words if w["x0"] < split_x]
-    right = [w for w in words if w["x0"] >= split_x]
-    return bool(left) and bool(right)
-
-
-def words_to_lines(words, y_tol=3):
-    if not words:
-        return ""
-    words = sorted(words, key=lambda w: (round(w["top"] / y_tol), w["x0"]))
-
-    lines, current, current_y = [], [], None
-    for w in words:
-        y = round(w["top"] / y_tol)
-        if current_y is None or y == current_y:
-            current.append(w["text"])
-            current_y = y
-        else:
-            lines.append(" ".join(current))
-            current = [w["text"]]
-            current_y = y
-
-    if current:
-        lines.append(" ".join(current))
-
-    return "\n".join(lines)
-
-
-def read_sequential(page):
-    return page.extract_text() or ""
-
-
-def read_two_column_header_left_then_right(page, header_top=90, y_tol=3, min_gap_ratio=0.08):
-    words = page.extract_words() or []
-    if not words:
-        return ""
-
-    split_x = _find_split_x(words, page.width, min_gap_ratio=min_gap_ratio)
-    if split_x is None:
-        return read_sequential(page)
-
-    header_words = [w for w in words if w["top"] < header_top]
-    body_words = [w for w in words if w["top"] >= header_top]
-
-    left_words = [w for w in body_words if w["x0"] < split_x]
-    right_words = [w for w in body_words if w["x0"] >= split_x]
-
-    header_text = words_to_lines(header_words, y_tol=y_tol).strip()
-    left_text = words_to_lines(left_words, y_tol=y_tol).strip()
-    right_text = words_to_lines(right_words, y_tol=y_tol).strip()
-
-    parts = [p for p in [header_text, left_text, right_text] if p]
-    return "\n\n".join(parts).strip()
-
-
-def read_pdf_layout_aware(pdf_path):
-    output = []
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            if is_two_column(page):
-                output.append(read_two_column_header_left_then_right(page))
-            else:
-                output.append(read_sequential(page))
-    return "\n\n".join(t for t in output if t.strip()).strip()
-
-
-# ------------------- DOCX TEXT READERS + QUALITY CHECK -------------------
-
-def _docx2python_text(docx_path: str) -> str:
-    """
-    docx2python can crash on table-heavy DOCX files. Return "" on failure.
-    """
-    try:
-        doc = docx2python(docx_path)
-        text = doc.text
-        doc.close()
-
-        if isinstance(text, list):
-            return "\n".join(
-                " ".join(map(str, row)) if isinstance(row, list) else str(row)
-                for row in text if row
-            ).strip()
-
-        return str(text).strip()
-
-    except Exception:
-        return ""
-
-
-def _python_docx_text(docx_path: str) -> str:
-    """
-    Safe fallback using python-docx.
-    Reads paragraphs + tables.
+    Safe DOCX extraction using python-docx.
+    Includes paragraphs + tables, de-duped preserving order.
     """
     doc = Document(docx_path)
 
     lines = []
+
     for p in doc.paragraphs:
         t = (p.text or "").strip()
         if t:
@@ -279,10 +113,14 @@ def _python_docx_text(docx_path: str) -> str:
 
     for tbl in doc.tables:
         for row in tbl.rows:
+            # join row cells in reading order so it doesn't become "cell cell cell" noise
+            row_text = []
             for cell in row.cells:
                 ct = (cell.text or "").strip()
                 if ct:
-                    lines.append(ct)
+                    row_text.append(ct)
+            if row_text:
+                lines.append(" | ".join(row_text))
 
     # De-dupe preserve order
     seen = set()
@@ -315,41 +153,198 @@ def _looks_bad_text(text: str) -> bool:
     return False
 
 
-# ------------------- FILE READER (fixed + safe) -------------------
+# ------------------------------------------------------------
+# PDF LAYOUT-AWARE EXTRACTION (PyMuPDF only)
+# ------------------------------------------------------------
 
-def extract_text_from_file(file_path):
-    _, ext = os.path.splitext(file_path)
-    ext = ext.lower()
+def _page_two_col_split_x(page: fitz.Page, gap_quantile: float = 0.90, min_gap_ratio: float = 0.08):
+    """
+    Find a likely split-x using text block x-positions.
+
+    Returns split_x or None if not confident.
+    """
+    blocks = page.get_text("blocks") or []
+    # blocks: (x0, y0, x1, y1, text, block_no, block_type)
+    x0s = sorted(b[0] for b in blocks if len(b) >= 5 and (b[4] or "").strip())
+    if len(x0s) < 12:
+        return None
+
+    gaps = [b - a for a, b in zip(x0s, x0s[1:]) if (b - a) > 0]
+    if not gaps:
+        return None
+
+    # robust gap threshold
+    gaps_sorted = sorted(gaps)
+    idx = int(max(0, min(len(gaps_sorted) - 1, round(gap_quantile * (len(gaps_sorted) - 1)))))
+    largest_gap = gaps_sorted[idx]
+
+    page_width = float(page.rect.width)
+    if largest_gap < page_width * float(min_gap_ratio):
+        return None
+
+    # choose the midpoint of the *largest actual gap* (not just quantile)
+    best_gap = 0.0
+    split_x = None
+    for a, b in zip(x0s, x0s[1:]):
+        gap = b - a
+        if gap > best_gap:
+            best_gap = gap
+            split_x = (a + b) / 2.0
+
+    return split_x
+
+
+def is_two_column_pymupdf(page: fitz.Page, min_gap_ratio: float = 0.08) -> bool:
+    split_x = _page_two_col_split_x(page, min_gap_ratio=min_gap_ratio)
+    if split_x is None:
+        return False
+
+    blocks = page.get_text("blocks") or []
+    left = 0
+    right = 0
+    for b in blocks:
+        if len(b) < 5:
+            continue
+        text = (b[4] or "").strip()
+        if not text:
+            continue
+        x0, x1 = float(b[0]), float(b[2])
+        x_center = (x0 + x1) / 2.0
+        if x_center < split_x:
+            left += 1
+        else:
+            right += 1
+
+    return left > 0 and right > 0
+
+
+def _sort_blocks_reading_order(blocks):
+    """
+    Sort blocks in natural reading order: by y0 then x0.
+    """
+    return sorted(blocks, key=lambda b: (round(float(b[1]), 1), round(float(b[0]), 1)))
+
+
+def read_pdf_sequential(doc: fitz.Document) -> str:
+    out = []
+    for page in doc:
+        blocks = page.get_text("blocks") or []
+        blocks = [b for b in blocks if len(b) >= 5 and (b[4] or "").strip()]
+        blocks = _sort_blocks_reading_order(blocks)
+        out.append("\n".join((b[4] or "").strip() for b in blocks if (b[4] or "").strip()))
+    return "\n\n".join(t for t in out if t.strip()).strip()
+
+
+def read_pdf_two_column_left_then_right(doc: fitz.Document, header_top: float = 90.0, min_gap_ratio: float = 0.08) -> str:
+    """
+    Two-column layout handling:
+      - header region (top area) read first in normal order
+      - then left column top->bottom
+      - then right column top->bottom
+    """
+    out_pages = []
+
+    for page in doc:
+        blocks = page.get_text("blocks") or []
+        blocks = [b for b in blocks if len(b) >= 5 and (b[4] or "").strip()]
+        if not blocks:
+            continue
+
+        split_x = _page_two_col_split_x(page, min_gap_ratio=min_gap_ratio)
+        if split_x is None:
+            # fallback
+            blocks = _sort_blocks_reading_order(blocks)
+            out_pages.append("\n".join((b[4] or "").strip() for b in blocks))
+            continue
+
+        header = []
+        body = []
+        for b in blocks:
+            y0 = float(b[1])
+            if y0 < header_top:
+                header.append(b)
+            else:
+                body.append(b)
+
+        left = []
+        right = []
+        for b in body:
+            x0, x1 = float(b[0]), float(b[2])
+            xc = (x0 + x1) / 2.0
+            if xc < split_x:
+                left.append(b)
+            else:
+                right.append(b)
+
+        header = _sort_blocks_reading_order(header)
+        left = _sort_blocks_reading_order(left)
+        right = _sort_blocks_reading_order(right)
+
+        parts = []
+        htxt = "\n".join((b[4] or "").strip() for b in header if (b[4] or "").strip()).strip()
+        ltxt = "\n".join((b[4] or "").strip() for b in left if (b[4] or "").strip()).strip()
+        rtxt = "\n".join((b[4] or "").strip() for b in right if (b[4] or "").strip()).strip()
+
+        for p in (htxt, ltxt, rtxt):
+            if p:
+                parts.append(p)
+
+        out_pages.append("\n\n".join(parts).strip())
+
+    return "\n\n".join(t for t in out_pages if t.strip()).strip()
+
+
+def read_pdf_layout_aware(pdf_path: str, min_gap_ratio: float = 0.08) -> str:
+    doc = fitz.open(pdf_path)
+    try:
+        # Decide layout across pages: if ANY page is two-column, treat as two-column.
+        two_col_pages = 0
+        total_pages = 0
+        for page in doc:
+            total_pages += 1
+            if is_two_column_pymupdf(page, min_gap_ratio=min_gap_ratio):
+                two_col_pages += 1
+
+        # if at least 1/3 of pages show two-col, likely a two-col resume
+        if total_pages > 0 and (two_col_pages / total_pages) >= 0.34:
+            return read_pdf_two_column_left_then_right(doc, min_gap_ratio=min_gap_ratio)
+
+        return read_pdf_sequential(doc)
+    finally:
+        doc.close()
+
+
+# ------------------------------------------------------------
+# FILE READER (Lambda safe)
+# ------------------------------------------------------------
+
+def extract_text_from_file(file_path: str) -> str:
+    """
+    Supports: .pdf, .docx, .txt
+
+    NOTE: No DOCX->PDF conversion in Lambda using only python-docx + PyMuPDF.
+    """
+    ext = Path(file_path).suffix.lower()
 
     try:
         if ext == ".pdf":
             return read_pdf_layout_aware(file_path)
 
-        if ext in [".docx", ".doc"]:
-            meta = detect_origin_and_ensure_pdf(file_path, docx_to_pdf)
+        if ext == ".docx":
+            origin = detect_docx_origin(file_path)
+            text = read_docx_text(file_path)
 
-            # If it’s PDF-converted or legacy, prefer PDF layout extraction
-            if meta["origin"] in ("PDF_CONVERTED_TO_DOCX", "LEGACY_DOC", "LEGACY_DOC_CONVERTED_TO_DOCX"):
-                return read_pdf_layout_aware(meta["pdf_path"])
-
-            # ORIGINAL_DOCX: docx2python -> python-docx -> pdf fallback
-            text = _docx2python_text(file_path)
-
-            if _looks_bad_text(text):
-                text2 = _python_docx_text(file_path)
-                if not _looks_bad_text(text2):
-                    return text2
-
-            if _looks_bad_text(text):
-                return read_pdf_layout_aware(meta["pdf_path"])
-
+            # If it looks like PDF-converted DOCX and text quality is poor, still return docx text
+            # (without conversion, this is the best we can do inside Lambda).
+            if origin == "PDF_CONVERTED_DOCX" and _looks_bad_text(text):
+                logger.warning("DOCX appears PDF-converted and extracted text quality is low; returning best-effort DOCX text.")
             return text
 
         if ext == ".txt":
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 return f.read()
 
-        return None
+        raise ValueError(f"Unsupported file type: {ext}")
 
     except Exception as e:
         raise Exception(f"Failed to extract text from file: {e}")

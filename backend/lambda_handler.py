@@ -1,4 +1,5 @@
 import os
+import sys
 from mangum import Mangum
 from main import app
 #keep this for local testing
